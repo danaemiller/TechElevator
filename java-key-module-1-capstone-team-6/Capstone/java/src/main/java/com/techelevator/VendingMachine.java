@@ -1,6 +1,7 @@
 package com.techelevator;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Timestamp;
@@ -18,7 +19,12 @@ public class VendingMachine {
     private Double totalSales;
     private DecimalFormat centFormat = new DecimalFormat("###.##");
 
-    public VendingMachine() {
+    File auditFile = new File("Log.txt");
+
+    PrintWriter fileWriter = new PrintWriter(auditFile);
+    Timestamp auditTime = Timestamp.valueOf(LocalDateTime.now());
+
+    public VendingMachine() throws FileNotFoundException {
         balance = 0.0;
         totalSales = 0.0;
     }
@@ -126,6 +132,14 @@ public class VendingMachine {
         return slots.containsKey(slotNumber);
     }
 
+    public Boolean isSoldOut(String slotNumber) {
+        if (slots.get(slotNumber).getInventory() == 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void getSalesReport() throws IOException {
 
         Timestamp dailySalesReport = Timestamp.valueOf(LocalDateTime.now());
@@ -142,5 +156,29 @@ public class VendingMachine {
         salesWriter.println("\nTotal Sales: $" + centFormat.format(totalSales));
         salesWriter.close();
         System.out.println("Sales Report generated.");
+    }
+
+    public void auditLog(String transactionType, Double amount) throws IOException {
+
+        if (transactionType.equalsIgnoreCase("FEED MONEY")) {
+            fileWriter.println(auditTime + " FEED MONEY: $" + centFormat.format(amount) + " $"
+                    + centFormat.format(getBalance()));
+        }
+    }
+
+    public void auditLog(String input) {
+
+        if (input.equalsIgnoreCase("DISPENSED CHANGE")) {
+            fileWriter.println(auditTime + " DISPENSED CHANGE $"
+                    + centFormat.format(getBalance()) + " $0.00");
+        } else {
+            fileWriter.println(auditTime + " " + getProductName(input.toUpperCase())
+                    + " " + input.toUpperCase() + " $" + centFormat.format(getBalance())
+                    + " $" + (centFormat.format(getBalance() - getProductPrice(input.toUpperCase()))));
+        }
+    }
+
+    public void closeFileWriter() {
+        fileWriter.close();
     }
 }

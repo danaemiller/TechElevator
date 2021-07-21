@@ -49,17 +49,11 @@ public class VendingMachineCLI {
 
 	VendingMachine vendingMachine = new VendingMachine();
 
-	File auditFile = new File("Log.txt");
-
-	PrintWriter fileWriter = new PrintWriter(auditFile);
-
-	Timestamp auditTime = Timestamp.valueOf(LocalDateTime.now());
-
 	DecimalFormat centFormat = new DecimalFormat("###.##");
 
 	public VendingMachineCLI(Menu menu) throws IOException {  // Constructor - user will pass a menu for this class to use
 		this.vendingMenu = menu;           // Make the Menu the user object passed, our Menu
-		auditFile.createNewFile();
+
 	}
 	/**************************************************************************************************************************
 	*  VendingMachineCLI main processing loop
@@ -90,8 +84,6 @@ public class VendingMachineCLI {
 
 
 
-
-		DecimalFormat centFormat = new DecimalFormat("###.##");
 
 		boolean shouldProcess = true;         // Loop control variable
 		
@@ -128,7 +120,7 @@ public class VendingMachineCLI {
 		vendingMachine.displayItems();
 	}
 	
-	public void purchaseItems() {	 // static attribute used as method is not associated with specific object instance
+	public void purchaseItems() throws IOException {	 // static attribute used as method is not associated with specific object instance
 
 
 		String userInput = "";
@@ -150,8 +142,7 @@ public class VendingMachineCLI {
 						System.out.println("Please enter valid tender.");
 					} else {
 						vendingMachine.feedMoney(Double.parseDouble(userInput));
-						fileWriter.println(auditTime + " FEED MONEY: $" + userInput + " $"
-								+ vendingMachine.getBalance());
+						vendingMachine.auditLog("FEED MONEY", Double.parseDouble(userInput));
 					}
 
 					break;
@@ -160,19 +151,16 @@ public class VendingMachineCLI {
 					vendingMachine.displayItems();
 					System.out.print("Please enter the product number of your selection >>> ");
 					userInput = keyboard.nextLine();
-					if (vendingMachine.isSlotNumber(userInput.toUpperCase())) {
-						fileWriter.println(auditTime + " " + vendingMachine.getProductName(userInput.toUpperCase())
-							+ " " + userInput.toUpperCase() + " $" + centFormat.format(vendingMachine.getBalance())
-								+ " $" + (centFormat.format(vendingMachine.getBalance() -
-									vendingMachine.getProductPrice(userInput.toUpperCase()))));
+					if (vendingMachine.isSlotNumber(userInput.toUpperCase())
+						&& !vendingMachine.isSoldOut(userInput.toUpperCase())) {
+						vendingMachine.auditLog(userInput.toUpperCase());
 					}
 					vendingMachine.makePurchase(userInput.toUpperCase());
 
 					break;
 
 				case PURCHASE_MENU_OPTION_FINISH:
-					fileWriter.println(auditTime + " DISPENSED CHANGE $"
-							+ centFormat.format(vendingMachine.getBalance()) + " $0.00");
+					vendingMachine.auditLog("DISPENSED CHANGE");
 					vendingMachine.giveChange();
 					makePurchaseLoop = false;
 					break;
@@ -181,7 +169,7 @@ public class VendingMachineCLI {
 	}
 	
 	public void endMethodProcessing() { // static attribute used as method is not associated with specific object instance
-		fileWriter.close();
+		vendingMachine.closeFileWriter();
 	}
 
 	public void getSalesReport() throws IOException {
